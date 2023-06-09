@@ -1,0 +1,40 @@
+---
+- name: Configure etcd node
+  hosts: etcdnodes
+  become: true
+  remote_user: chernots
+
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - etcd
+          - net-tools
+        state: present
+        update_cache: yes
+
+    - name: Configure etcd settings
+      blockinfile:
+        path: /etc/default/etcd
+        block: |
+          ETCD_LISTEN_PEER_URLS="http://{{ ansible_host }}:2380"
+          ETCD_LISTEN_CLIENT_URLS="http://localhost:2379,http://{{ ansible_host }}:2379"
+          ETCD_INITIAL_ADVERTISE_PEER_URLS="http://{{ ansible_host }}:2380"
+          ETCD_INITIAL_CLUSTER="default=http://{{ ansible_host }}:2380,"
+          ETCD_ADVERTISE_CLIENT_URLS="http://{{ ansible_host }}:2379"
+          ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"
+          ETCD_INITIAL_CLUSTER_STATE="new"
+      notify:
+        - Restart etcd
+
+  handlers:
+    - name: Restart etcd
+      systemd:
+        name: etcd
+        state: restarted
+
+    - name: Check etcd status
+      systemd:
+        name: etcd
+        state: started
+        enabled: yes
