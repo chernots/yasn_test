@@ -1,0 +1,45 @@
+---
+- name: Install Go prerequisites
+  hosts: nodes
+  become: true
+  remote_user: chernots
+
+  tasks:
+    - name: install golang form apt
+      apt:
+        name: golang
+        state: present
+
+#    -name:
+
+    - name: Load Go environment variables for the current session
+      ansible.builtin.shell: source ~/.bashrc
+      args:
+        executable: /bin/bash
+
+    - name: Verify Go installation
+      ansible.builtin.shell: go version
+      register: go_version_output
+
+    - name: Print Go version
+      debug:
+        msg: "{{ go_version_output.stdout }}"
+### тут не победил :(
+    - name: Set environment variable
+      ansible.builtin.shell: |
+        export GO111MODULE=on
+      become: true
+
+    - name: Install NATS Server
+      ansible.builtin.shell: go get github.com/nats-io/nats-server/v2
+      become: true
+
+    - name: Start NATS server
+      command: nats-server
+      register: nats_output
+      async: 600
+      poll: 0
+
+    - name: Display NATS output
+      debug:
+        var: nats_output.stdout
