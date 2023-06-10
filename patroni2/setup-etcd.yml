@@ -1,0 +1,41 @@
+---
+- name: Configure etcd node
+  hosts: etcdnodes
+  become: true
+  remote_user: chernots
+
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - etcd
+          - net-tools
+        state: present
+        update_cache: yes
+
+    - name: Configure etcd settings
+      ansible.builtin.template:
+         src: templates/etcd-cfg.j2
+         dest: /etc/default/etcd
+
+    - name: restart etcd daemon
+      ansible.builtin.systemd:
+        name: etcd
+        state: restarted
+        daemon_reload: true
+
+    - name: Check etcd status
+      systemd:
+        name: etcd
+        state: started
+        enabled: yes
+
+    - name: Retrieve etcd members
+      uri:
+        url: "http://localhost:2379/v2/members"
+        register: etcd_members
+        return_content: yes
+
+    - name: Display etcd members
+      debug:
+        var: etcd_members.content
