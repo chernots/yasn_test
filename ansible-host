@@ -1,0 +1,6 @@
+python3 -m pip -V
+python3 -m pip install --user ansible
+export PATH=$PATH:/root/.local/bin
+ansible --version
+mkdir /etc/ansible
+ansible-config init --disabled > /etc/ansible/ansible.cfg
