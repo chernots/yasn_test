@@ -4,9 +4,9 @@
   become: true
   remote_user: chernots
   vars:
-    node1_ip: 10.130.0.18
-    node2_ip: 10.130.0.38
-    node3_ip: 10.130.0.35
+    node1_ip: 10.130.0.7
+    node2_ip: 10.130.0.32
+    node3_ip: 10.130.0.22
   tasks:
     - name: Install packages
       ansible.builtin.apt:
@@ -16,44 +16,16 @@
         state: present
         update_cache: yes
     - name: Replace haproxy.cfg file
-      blockinfile:
-        path: /etc/haproxy/haproxy.cfg
-        block: |
-          global
-            maxconn 100
-            log 127.0.0.1 local2
-
-          defaults
-            log global
-            mode tcp
-            retries 2
-            timeout client 30m
-            timeout connect 4s
-            timeout server 30m
-            timeout check 5s
-
-          listen stats
-            mode http
-            bind *:7000
-            stats enable
-            stats uri /
-
-          listen postgres
-            bind *:5000
-            option httpchk
-            http-check expect status 200
-            default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
-            server node1 {{ node1_ip }}:5432 maxconn 100 check port 8008
-            server node2 {{ node2_ip }}:5432 maxconn 100 check port 8008
-            server node3 {{ node3_ip }}:5432 maxconn 100 check port 8008
-
+      ansible.builtin.template:
+         src: templates/ha-cfg.j2
+         dest: /etc/haproxy/haproxy.cfg
     - name: Restart HAProxy service
-      systemd:
+      ansible.builtin.systemd:
         name: haproxy
         state: restarted
 
     - name: Check HAProxy service status
-      systemd:
+      ansible.builtin.systemd:
         name: haproxy
         state: started
         enabled: yes
