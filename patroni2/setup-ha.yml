@@ -1,0 +1,33 @@
+---
+- name: Configure Haproxy node
+  hosts: haproxynodes
+  become: true
+  remote_user: chernots
+  vars:
+    node1_ip: 10.130.0.7
+    node2_ip: 10.130.0.32
+    node3_ip: 10.130.0.22
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - haproxy
+          - net-tools
+        state: present
+        update_cache: yes
+
+    - name: Replace haproxy.cfg file
+      ansible.builtin.template:
+         src: templates/ha-cfg.j2
+         dest: /etc/haproxy/haproxy.cfg
+
+    - name: Restart HAProxy service
+      ansible.builtin.systemd:
+        name: haproxy
+        state: restarted
+
+    - name: Check HAProxy service status
+      ansible.builtin.systemd:
+        name: haproxy
+        state: started
+        enabled: yes
